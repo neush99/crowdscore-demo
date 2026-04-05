@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crowdscore – Live Scores Amateurs</title>
+<meta name="description" content="Crowdscore – Suivez les scores en live de tous les sports amateurs, partout dans le monde.">
+<meta property="og:title" content="Crowdscore">
+<meta property="og:description" content="Le live score participatif pour le sport amateur">
+<meta property="og:type" content="website">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --green: #00C97B;
+    --dark: #0D0D0D;
+    --card: #1A1A2E;
+    --card2: #16213E;
+    --text: #F0F0F0;
+    --muted: #888;
+    --red: #FF4757;
+    --yellow: #FFD700;
+  }
+  body { background: var(--dark); color: var(--text); font-family: 'Segoe UI', sans-serif; max-width: 420px; margin: 0 auto; min-height: 100vh; }
+
+  header { background: var(--card); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--green); position: sticky; top: 0; z-index: 100; }
+  .logo { font-size: 22px; font-weight: 800; color: var(--green); letter-spacing: -1px; }
+  .logo span { color: var(--text); }
+  .header-btn { background: var(--green); color: var(--dark); border: none; padding: 8px 14px; border-radius: 20px; font-weight: 700; font-size: 13px; cursor: pointer; }
+
+  .live-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--red); color: white; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 10px; }
+  .live-dot { width: 6px; height: 6px; background: white; border-radius: 50%; animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .match-card { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: transform .15s; border: 1px solid #222; }
+  .match-card:hover { transform: translateY(-2px); border-color: var(--green); }
+  .match-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .sport-tag { font-size: 11px; background: #222; padding: 3px 10px; border-radius: 10px; color: var(--muted); }
+  .match-teams { display: flex; align-items: center; justify-content: space-between; }
+  .team { text-align: center; flex: 1; }
+  .team-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .score-block { text-align: center; padding: 0 10px; }
+  .score { font-size: 32px; font-weight: 900; color: var(--green); letter-spacing: 2px; }
+  .contributors { font-size: 11px; color: var(--muted); margin-top: 8px; display: flex; align-items: center; gap: 5px; }
+  .contrib-avatar { width: 18px; height: 18px; border-radius: 50%; background: var(--green); display: inline-flex; align-items: center; justify-content: center; font-size: 9px; color: var(--dark); font-weight: 700; }
+
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-btn { white-space: nowrap; padding: 6px 14px; border-radius: 20px; border: 1px solid #333; background: none; color: var(--muted); font-size: 12px; cursor: pointer; transition: all .2s; }
+  .filter-btn.active { background: var(--green); color: var(--dark); border-color: var(--green); font-weight: 700; }
+
+  .detail { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--dark); overflow-y: auto; z-index: 200; max-width: 420px; margin: 0 auto; }
+  .detail.open { display: block; }
+  .detail-header { background: var(--card); padding: 16px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #222; position: sticky; top: 0; }
+  .back-btn { background: none; border: none; color: var(--green); font-size: 22px; cursor: pointer; }
+  .detail-body { padding: 20px; }
+  .big-score { text-align: center; padding: 24px; }
+  .big-score .teams { display: flex; justify-content: space-around; align-items: center; }
+  .big-score .team-big { text-align: center; }
+  .big-score .team-big .name { font-size: 16px; font-weight: 700; }
+  .big-score .score-main { font-size: 56px; font-weight: 900; color: var(--green); }
+  .big-score .score-main .sep { color: var(--muted); font-size: 32px; }
+  .period-info { text-align: center; margin-top: 4px; color: var(--muted); font-size: 13px; }
+
+  .timeline { margin: 20px 0; }
+  .timeline h3 { font-size: 14px; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .event { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #1a1a1a; }
+  .event-time { font-size: 12px; color: var(--green); font-weight: 700; width: 30px; }
+  .event-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; background: rgba(0,201,123,.15); }
+  .event-desc { flex: 1; font-size: 13px; }
+  .event-score { font-size: 13px; font-weight: 700; color: var(--green); }
+
+  .share-section { margin-top: 20px; }
+  .share-section h3, .comments h3 { font-size: 14px; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .share-btns { display: flex; gap: 10px; }
+  .share-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .share-tw { background: #1DA1F2; color: white; }
+  .share-wa { background: #25D366; color: white; }
+  .share-copy { background: #333; color: var(--text); }
+
+  .comments { margin-top: 20px; }
+  .comment { background: var(--card); border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+  .comment-author { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .comment-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--dark); }
+  .comment-name { font-size: 13px; font-weight: 600; }
+  .verified-badge { font-size: 10px; background: rgba(0,201,123,.15); color: var(--green); padding: 2px 6px; border-radius: 6px; }
+  .comment-text { font-size: 13px; color: #ccc; }
+  .comment-time { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .comment-input { display: flex; gap: 8px; margin-top: 12px; }
+  .comment-input input { flex: 1; background: var(--card); border: 1px solid #333; border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 13px; }
+  .comment-input input:focus { outline: none; border-color: var(--green); }
+  .comment-input button { background: var(--green); border: none; border-radius: 10px; padding: 10px 16px; color: var(--dark); font-weight: 700; cursor: pointer; }
+
+  .score-input-section { background: var(--card); border-radius: 14px; padding: 16px; margin-top: 16px; border: 1px solid var(--green); }
+  .score-input-section h3 { font-size: 13px; color: var(--green); margin-bottom: 12px; font-weight: 700; }
+  .score-inputs { display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .score-inputs input { width: 60px; height: 60px; background: #222; border: 2px solid #333; border-radius: 12px; color: var(--text); font-size: 28px; font-weight: 900; text-align: center; }
+  .score-inputs input:focus { outline: none; border-color: var(--green); }
+  .score-inputs .sep { font-size: 24px; color: var(--muted); }
+  .update-btn { width: 100%; margin-top: 12px; padding: 12px; background: var(--green); border: none; border-radius: 12px; color: var(--dark); font-weight: 800; font-size: 15px; cursor: pointer; }
+
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+  .form-group input, .form-group select { width: 100%; background: var(--card); border: 1px solid #333; border-radius: 10px; padding: 12px 14px; color: var(--text); font-size: 14px; }
+  .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--green); }
+  .form-group select option { background: var(--card); }
+  .submit-btn { width: 100%; padding: 14px; background: var(--green); border: none; border-radius: 12px; color: var(--dark); font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 8px; }
+
+  .profile-card { background: var(--card); border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 16px; }
+  .profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: var(--dark); margin: 0 auto 12px; }
+  .profile-name { font-size: 18px; font-weight: 700; }
+  .profile-badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(0,201,123,.15); color: var(--green); padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-top: 6px; }
+  .stats-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .stat-card { flex: 1; background: var(--card); border-radius: 12px; padding: 14px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 800; color: var(--green); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 420px; background: var(--card); border-top: 1px solid #222; display: flex; }
+  .bottom-nav button { flex: 1; padding: 12px 0 10px; background: none; border: none; color: var(--muted); font-size: 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: color .2s; }
+  .bottom-nav button.active { color: var(--green); }
+  .bottom-nav button span:first-child { font-size: 20px; }
+  .pb { padding-bottom: 70px; }
+
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--green); color: var(--dark); padding: 10px 20px; border-radius: 20px; font-weight: 700; font-size: 14px; opacity: 0; transition: opacity .3s; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Crowd<span>score</span></div>
+  <button class="header-btn" onclick="showToast('Connexion simulée ✓')">Se connecter</button>
+</header>
+
+<nav class="bottom-nav">
+  <button class="active" onclick="switchPage('home', this)"><span>🏟️</span><span>Live</span></button>
+  <button onclick="switchPage('add', this)"><span>➕</span><span>Ajouter</span></button>
+  <button onclick="switchPage('profile', this)"><span>👤</span><span>Profil</span></button>
+</nav>
+
+<!-- HOME -->
+<div id="page-home" class="page active pb">
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="filterSport('Tous', this)">Tous</button>
+    <button class="filter-btn" onclick="filterSport('Hockey', this)">🏑 Hockey</button>
+    <button class="filter-btn" onclick="filterSport('Football', this)">⚽ Football</button>
+    <button class="filter-btn" onclick="filterSport('Basket', this)">🏀 Basket</button>
+    <button class="filter-btn" onclick="filterSport('Rugby', this)">🏉 Rugby</button>
+    <button class="filter-btn" onclick="filterSport('Tennis', this)">🎾 Tennis</button>
+  </div>
+  <div id="matches-list"></div>
+</div>
+
+<!-- ADD -->
+<div id="page-add" class="page pb">
+  <h2 style="font-size:18px;font-weight:800;margin-bottom:20px">Ajouter un match</h2>
+  <div class="form-group"><label>Sport</label>
+    <select id="new-sport">
+      <option>🏑 Hockey sur gazon</option>
+      <option>⚽ Football</option>
+      <option>🏀 Basket</option>
+      <option>🏉 Rugby</option>
+      <option>🎾 Tennis</option>
+      <option>🏐 Volley</option>
+    </select>
+  </div>
+  <div class="form-group"><label>Équipe domicile</label><input type="text" id="new-home" placeholder="ex: RC Nantes Hockey"></div>
+  <div class="form-group"><label>Équipe extérieur</label><input type="text" id="new-away" placeholder="ex: Lyon HC"></div>
+  <div class="form-group"><label>Compétition</label><input type="text" id="new-comp" placeholder="ex: Championnat Régional N2"></div>
+  <div class="form-group"><label>Lieu</label><input type="text" id="new-venue" placeholder="ex: Stade des Ardoines"></div>
+  <button class="submit-btn" onclick="addMatch()">🏟️ Créer le match</button>
+</div>
+
+<!-- PROFILE -->
+<div id="page-profile" class="page pb">
+  <div class="profile-card">
+    <div class="profile-avatar">YB</div>
+    <div class="profile-name">Yann B.</div>
+    <div class="profile-badge">⭐ Contributeur Vérifié Niv. 2</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val">47</div><div class="stat-label">Scores saisis</div></div>
+    <div class="stat-card"><div class="stat-val">312</div><div class="stat-label">Vues générées</div></div>
+    <div class="stat-card"><div class="stat-val">18</div><div class="stat-label">Partages</div></div>
+  </div>
+  <div class="match-card" style="cursor:default">
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">Système de niveaux</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:28px;height:28px;border-radius:50%;background:#333;display:flex;align-items:center;justify-content:center;font-size:12px">1</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">Licencié fédéral</div><div style="font-size:11px;color:var(--muted)">Justificatif de licence sportive</div></div>
+        <div style="color:var(--green);font-size:16px">✓</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--dark);font-weight:700">2</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">Identité vérifiée</div><div style="font-size:11px;color:var(--muted)">Pièce d'identité validée</div></div>
+        <div style="color:var(--green);font-size:16px">✓</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:28px;height:28px;border-radius:50%;background:#222;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)">3</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">Expert reconnu</div><div style="font-size:11px;color:var(--muted)">500 likes sur tes contributions</div></div>
+        <div style="color:var(--muted);font-size:16px">○</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL OVERLAY -->
+<div id="match-detail" class="detail">
+  <div class="detail-header">
+    <button class="back-btn" onclick="closeDetail()">←</button>
+    <div id="detail-title" style="font-weight:700"></div>
+    <div style="margin-left:auto" id="detail-live"></div>
+  </div>
+  <div class="detail-body">
+    <div class="big-score">
+      <div class="teams">
+        <div class="team-big"><div class="name" id="d-team1"></div></div>
+        <div class="score-main"><span id="d-score1">0</span><span class="sep"> - </span><span id="d-score2">0</span></div>
+        <div class="team-big"><div class="name" id="d-team2"></div></div>
+      </div>
+      <div class="period-info" id="d-period"></div>
+    </div>
+    <div class="score-input-section">
+      <h3>⚡ Mettre à jour le score</h3>
+      <div class="score-inputs">
+        <input type="number" id="input-s1" min="0" value="0">
+        <span class="sep">-</span>
+        <input type="number" id="input-s2" min="0" value="0">
+      </div>
+      <button class="update-btn" onclick="updateScore()">Valider le score</button>
+    </div>
+    <div class="timeline" id="d-timeline"></div>
+    <div class="share-section">
+      <h3>Partager</h3>
+      <div class="share-btns">
+        <button class="share-btn share-tw" onclick="shareMatch('twitter')">𝕏 Twitter</button>
+        <button class="share-btn share-wa" onclick="shareMatch('whatsapp')">💬 WhatsApp</button>
+        <button class="share-btn share-copy" onclick="shareMatch('copy')">🔗 Copier</button>
+      </div>
+    </div>
+    <div class="comments">
+      <h3>Commentaires live</h3>
+      <div id="comments-list"></div>
+      <div class="comment-input">
+        <input type="text" id="comment-text" placeholder="Commente le match...">
+        <button onclick="addComment()">→</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const matches = [
+  { id:1, sport:'🏑 Hockey', home:'RC Nantes HC', away:'Lyon HC', score:[2,1], live:true, time:'34\'', comp:'Championnat N2', venue:'Stade des Ardoines', contribs:['YB','ML'], events:[{t:'12\'',desc:'But de Dupont (Nantes)',score:'1-0'},{t:'23\'',desc:'Égalisation Morel (Lyon)',score:'1-1'},{t:'34\'',desc:'But de Faure (Nantes)',score:'2-1'}], comments:[{author:'Yann B.',avatar:'YB',verified:true,text:'Belle action de Dupont en première mi-temps !',time:'il y a 12 min'},{author:'M. Laurent',avatar:'ML',verified:false,text:'Lyon pousse fort, ça va changer',time:'il y a 5 min'}] },
+  { id:2, sport:'⚽ Football', home:'AS Villepinte', away:'FC Tremblay', score:[0,0], live:true, time:'18\'', comp:'District Seine-et-Marne', venue:'Stade Municipal', contribs:['TK'], events:[], comments:[] },
+  { id:3, sport:'🏀 Basket', home:'Élan Chalon U21', away:'JDA Dijon U21', score:[34,28], live:true, time:'Q2 - 4\'', comp:'Championnat Régional U21', venue:'Salle Coubertin', contribs:['PL','SR','AM'], events:[{t:'Q1',desc:'Fin du 1er quart-temps',score:'18-12'}], comments:[{author:'Sophie R.',avatar:'SR',verified:true,text:'Chalon domine mais Dijon revient !',time:'il y a 3 min'}] },
+  { id:4, sport:'🏉 Rugby', home:'US Colomiers', away:'Stade Aurillacois', score:[14,7], live:false, time:'Terminé', comp:'Fédérale 1', venue:'Stade d\'Honneur', contribs:['JD'], events:[], comments:[] },
+  { id:5, sport:'🏑 Hockey', home:'Lille MHC', away:'Stade Français HC', score:[1,3], live:false, time:'Terminé', comp:'Division 1 Nationale', venue:'Stade Lille Métropole', contribs:['CB','YB'], events:[], comments:[] },
+];
+
+let currentMatch = null, currentFilter = 'Tous';
+
+function renderMatches(f) {
+  const filtered = f === 'Tous' ? matches : matches.filter(m => m.sport.includes(f));
+  document.getElementById('matches-list').innerHTML = filtered.map(m => `
+    <div class="match-card" onclick="openDetail(${m.id})">
+      <div class="match-meta">
+        <span class="sport-tag">${m.sport}</span>
+        ${m.live ? '<span class="live-badge"><span class="live-dot"></span>LIVE</span>' : '<span style="font-size:11px;color:var(--muted)">Terminé</span>'}
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${m.comp}</div>
+      <div class="match-teams">
+        <div class="team"><div class="team-name">${m.home}</div></div>
+        <div class="score-block"><div class="score">${m.score[0]} <span style="color:var(--muted);font-size:20px">-</span> ${m.score[1]}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${m.time}</div></div>
+        <div class="team"><div class="team-name">${m.away}</div></div>
+      </div>
+      <div class="contributors">${m.contribs.map(c=>`<div class="contrib-avatar">${c}</div>`).join('')}<span>${m.contribs.length} contributeur${m.contribs.length>1?'s':''}</span></div>
+    </div>`).join('');
+}
+
+function filterSport(name, btn) {
+  currentFilter = name;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMatches(name);
+}
+
+function openDetail(id) {
+  currentMatch = matches.find(m => m.id === id);
+  document.getElementById('d-team1').textContent = currentMatch.home;
+  document.getElementById('d-team2').textContent = currentMatch.away;
+  document.getElementById('d-score1').textContent = currentMatch.score[0];
+  document.getElementById('d-score2').textContent = currentMatch.score[1];
+  document.getElementById('input-s1').value = currentMatch.score[0];
+  document.getElementById('input-s2').value = currentMatch.score[1];
+  document.getElementById('d-period').textContent = currentMatch.time + ' · ' + currentMatch.venue;
+  document.getElementById('detail-title').textContent = currentMatch.sport;
+  document.getElementById('detail-live').innerHTML = currentMatch.live ? '<span class="live-badge"><span class="live-dot"></span>LIVE</span>' : '<span style="font-size:11px;color:var(--muted)">Terminé</span>';
+  renderTimeline(); renderComments();
+  document.getElementById('match-detail').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('match-detail').classList.remove('open');
+  renderMatches(currentFilter);
+}
+
+function renderTimeline() {
+  const tl = document.getElementById('d-timeline');
+  if (!currentMatch.events.length) { tl.innerHTML = ''; return; }
+  tl.innerHTML = `<h3>Événements</h3>` + currentMatch.events.map(e => `
+    <div class="event">
+      <div class="event-time">${e.t}</div>
+      <div class="event-icon">⚽</div>
+      <div class="event-desc">${e.desc}</div>
+      <div class="event-score">${e.score}</div>
+    </div>`).join('');
+}
+
+function renderComments() {
+  document.getElementById('comments-list').innerHTML = currentMatch.comments.map(c => `
+    <div class="comment">
+      <div class="comment-author">
+        <div class="comment-avatar">${c.avatar}</div>
+        <span class="comment-name">${c.author}</span>
+        ${c.verified ? '<span class="verified-badge">✓ Vérifié</span>' : ''}
+      </div>
+      <div class="comment-text">${c.text}</div>
+      <div class="comment-time">${c.time}</div>
+    </div>`).join('');
+}
+
+function updateScore() {
+  const s1 = parseInt(document.getElementById('input-s1').value)||0;
+  const s2 = parseInt(document.getElementById('input-s2').value)||0;
+  currentMatch.score = [s1, s2];
+  document.getElementById('d-score1').textContent = s1;
+  document.getElementById('d-score2').textContent = s2;
+  showToast('Score mis à jour ✓');
+}
+
+function addComment() {
+  const txt = document.getElementById('comment-text').value.trim();
+  if (!txt) return;
+  currentMatch.comments.push({ author:'Yann B.', avatar:'YB', verified:true, text:txt, time:'à l\'instant' });
+  renderComments();
+  document.getElementById('comment-text').value = '';
+}
+
+function shareMatch(type) {
+  const m = currentMatch;
+  const txt = `${m.sport} | ${m.home} ${m.score[0]}-${m.score[1]} ${m.away} · ${m.live?'🔴 LIVE':'FT'} · ${m.comp} | via Crowdscore`;
+  if (type === 'twitter') window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(txt)}`);
+  else if (type === 'whatsapp') window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`);
+  else { navigator.clipboard?.writeText(txt); showToast('Copié ✓'); }
+}
+
+function addMatch() {
+  const sport = document.getElementById('new-sport').value;
+  const home = document.getElementById('new-home').value.trim();
+  const away = document.getElementById('new-away').value.trim();
+  const comp = document.getElementById('new-comp').value.trim();
+  const venue = document.getElementById('new-venue').value.trim();
+  if (!home || !away) { showToast('Remplis les équipes !'); return; }
+  matches.unshift({ id:Date.now(), sport, home, away, score:[0,0], live:true, time:'0\'', comp:comp||'Match amical', venue:venue||'Terrain local', contribs:['YB'], events:[], comments:[] });
+  showToast('Match créé ✓');
+  const btn = document.querySelectorAll('.bottom-nav button')[0];
+  switchPage('home', btn);
+  renderMatches(currentFilter);
+}
+
+function switchPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+renderMatches('Tous');
+</script>
+</body>
+</html>
